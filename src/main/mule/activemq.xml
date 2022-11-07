@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="38045f96-f794-4bc2-a796-c0f9e7734cf3" >
+		<http:listener-connection host="0.0.0.0" port="8083" />
+	</http:listener-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="df032dd1-c22b-4e36-a0e0-6edfd98beb02" >
+		<jms:active-mq-connection username="admin" password="admin" >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="activemqFlow" doc:id="97ff8d5d-e740-4480-a4ab-4b84ef2258bf" >
+		<http:listener doc:name="Listener" doc:id="b8488945-0969-4aa9-b2da-7022a97c9851" config-ref="HTTP_Listener_config" path="/activepublish"/>
+		<jms:publish doc:id="b0112536-eda0-4049-9719-18a6e1dc7500" config-ref="JMS_Config" destination="testqueue-sep21	" persistentDelivery="true">
+			<jms:message >
+				<jms:body ><![CDATA[[
+{
+ "accountname": "demoaccount1",
+ "site": "testsite.com",
+ "accountnumber": "2345678909"
+},
+{
+ "accountname": "demoaccount2",
+ "site": "testsite.com",
+ "accountnumber": "4545678786"
+}
+]]]></jms:body>
+			</jms:message>
+		</jms:publish>
+	</flow>
+	<flow name="activemqFlow1" doc:id="f46c5452-d3aa-444b-bfaf-fd71773470a9" >
+		<http:listener doc:name="Listener" doc:id="07eb0ef3-66f0-4ea5-a39d-41daf09cdea7" config-ref="HTTP_Listener_config" path="/activeconsume"/>
+		<jms:consume doc:name="Consume" doc:id="e12b047c-4dde-4b91-aaa0-9e28baa3d46c" config-ref="JMS_Config" destination="testqueue-sep21">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:consume>
+		<ee:transform doc:name="Transform Message" doc:id="46a90036-656f-418e-8709-b423953b867b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="topic_activemqFlow" doc:id="98c2fa63-d30c-4328-bccb-6d26b090870e" >
+		<http:listener doc:name="Copy_of_Listener" doc:id="c3de0ab2-590f-4426-a4ac-3e92d53cceae" config-ref="HTTP_Listener_config" path="/activetopicpublish" />
+		<jms:publish doc:name="Copy_of_Publish" doc:id="40717c25-9986-4f51-ba61-a543b8019ba0" config-ref="JMS_Config" destination="testtopic-sep21	" persistentDelivery="true" destinationType="TOPIC">
+			<jms:message >
+				<jms:body ><![CDATA[[
+{
+ "accountname": "demoaccount1",
+ "site": "testsite.com",
+ "accountnumber": "2345678909"
+},
+{
+ "accountname": "demoaccount2",
+ "site": "testsite.com",
+ "accountnumber": "4545678786"
+}
+]]]></jms:body>
+			</jms:message>
+		</jms:publish>
+	</flow>
+	<flow name="topic-subscriber1-flow" doc:id="91aadda3-2755-4f0b-be58-fa6b2939d8ad" >
+		<jms:listener doc:name="On New Message" doc:id="e66b4f6a-a858-4c0b-9efe-916f091f0e0f" config-ref="JMS_Config" destination="testtopic-sep21" numberOfConsumers="1">
+			<jms:consumer-type >
+				<jms:topic-consumer />
+			</jms:consumer-type>
+			<jms:response persistentDelivery="true" />
+		</jms:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="d1d67c64-e738-4b03-94f2-0d77897d139e" message="#####message resevied from subscriber1:#[payload]"/>
+	</flow>
+	<flow name="topic-subscriber2-flow" doc:id="e0745779-d170-4f41-b98e-c085f83074b8" >
+		<jms:listener doc:name="On New Message" doc:id="6193864d-2245-4cec-bbe1-c238977875d9" config-ref="JMS_Config" destination="testtopic-sep21" numberOfConsumers="1">
+			<jms:consumer-type >
+				<jms:topic-consumer />
+			</jms:consumer-type>
+			<jms:response persistentDelivery="true" />
+		</jms:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="a69a1c73-62ce-418b-950b-7e59d893ecde" message="#####message resevied from subscriber2:#[payload]"/>
+	</flow>
+</mule>
